@@ -1,9 +1,7 @@
-
 --[[
     NEXUS CONTROL v4.0
-    RED DARK EDITION
+    RED DARK EDITION (Client Executor Fixed)
     Created by: 阿叶ev03
-    Roblox Studio - LocalScript
     For your own Roblox experience
 ]]
 
@@ -14,51 +12,32 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Player = Players.LocalPlayer
--- 如果物体可能不存在，这样写可以防止崩脚本
-local replicatedStorage = game:GetService("ReplicatedStorage")
--- 设置超时时间为 5 秒，如果找不到会返回 nil 而不是直接报错崩溃
-local myFolder = replicatedStorage:WaitForChild("NexusFolder", 5) 
-
-if myFolder then
-    -- 找到了继续执行
-    local remote = myFolder:WaitForChild("NexusGetConfig", 5)
-else
-    warn("[NEXUS] 找不到指定的文件夹，请检查层级结构！")
-end
+local PlayerGui = Player:WaitForChild("PlayerGui")
 
 --==================================================
--- GITHUB CONFIG LOADER
+-- CONFIG FALLBACK (Client Safe)
 --==================================================
 
-local RemoteConfig = nil
+local RemoteConfig = {
+	version = "4.0.0",
+	window = { width = 590, height = 420 },
+	modules = { movement = true, settings = true, about = true, panicButton = true },
+	hotkeys = { fly = "F", noclip = "N", speed = "G", menu = "RightShift" }
+}
 
-local Remote = ReplicatedStorage:WaitForChild(
-	"NexusGetConfig", 15
-)
-
-if Remote and Remote:IsA("RemoteFunction") then
-	for attempt = 1, 3 do
-		local success, response = pcall(function()
+-- 尝试通过 RemoteFunction 获取服务端配置（如果存在的话）
+local success, response = pcall(function()
+	local myFolder = ReplicatedStorage:WaitForChild("NexusFolder", 2)
+	if myFolder then
+		local Remote = myFolder:WaitForChild("NexusGetConfig", 2)
+		if Remote and Remote:IsA("RemoteFunction") then
 			return Remote:InvokeServer()
-		end)
-
-		if success
-			and type(response) == "table"
-			and response.success == true
-			and type(response.config) == "table" then
-
-			RemoteConfig = response.config
-			break
 		end
-
-		warn("[NEXUS] Config request failed:", response)
-		task.wait(1)
 	end
-end
+end)
 
-if not RemoteConfig then
-	warn("[NEXUS] Using default configuration")
-	RemoteConfig = {}
+if success and type(response) == "table" and response.success == true and type(response.config) == "table" then
+	RemoteConfig = response.config
 end
 
 local RemoteWindow = RemoteConfig.window or {}
@@ -683,29 +662,9 @@ end
 
 CreateSection(MovementPage, "MOVEMENT CONTROL")
 
-local ToggleFly = CreateToggle(
-	MovementPage,
-	"FLY MODE",
-	"Flight control",
-	Config.Keys.Fly.Name,
-	"Fly"
-)
-
-local ToggleNoclip = CreateToggle(
-	MovementPage,
-	"NOCLIP",
-	"Collision test",
-	Config.Keys.Noclip.Name,
-	"Noclip"
-)
-
-local ToggleSpeed = CreateToggle(
-	MovementPage,
-	"SPEED BOOST",
-	"Movement control",
-	Config.Keys.Speed.Name,
-	"Speed"
-)
+CreateToggle(MovementPage, "FLY MODE", "Flight control", Config.Keys.Fly.Name, "Fly")
+CreateToggle(MovementPage, "NOCLIP", "Collision test", Config.Keys.Noclip.Name, "Noclip")
+CreateToggle(MovementPage, "SPEED BOOST", "Movement control", Config.Keys.Speed.Name, "Speed")
 
 --==================================================
 -- SLIDER
@@ -794,29 +753,16 @@ local function CreateSlider(page, label, minValue, maxValue, initial, callback)
 	end)
 end
 
-CreateSlider(
-	MovementPage,
-	"FLIGHT SPEED",
-	1, 200,
-	Config.FlySpeed,
-	function(value)
-		Config.FlySpeed = value
-	end
-)
+CreateSlider(MovementPage, "FLIGHT SPEED", 1, 200, Config.FlySpeed, function(value)
+	Config.FlySpeed = value
+end)
 
-CreateSlider(
-	MovementPage,
-	"WALK SPEED",
-	1, 200,
-	Config.WalkSpeed,
-	function(value)
-		Config.WalkSpeed = value
-
-		if Modules.Speed and Humanoid then
-			Humanoid.WalkSpeed = value
-		end
+CreateSlider(MovementPage, "WALK SPEED", 1, 200, Config.WalkSpeed, function(value)
+	Config.WalkSpeed = value
+	if Modules.Speed and Humanoid then
+		Humanoid.WalkSpeed = value
 	end
-)
+end)
 
 --==================================================
 -- SETTINGS PAGE
@@ -853,8 +799,7 @@ CreateSection(AboutPage, "ABOUT NEXUS")
 CreateInfo(AboutPage, "NEXUS CONTROL v" .. Version)
 CreateInfo(AboutPage, "RED DARK EDITION")
 CreateInfo(AboutPage, "Created by: 阿叶ev03")
-CreateInfo(AboutPage, "Roblox Studio Test Edition")
-CreateInfo(AboutPage, "Created for authorized game testing.")
+CreateInfo(AboutPage, "Client Executor Edition")
 
 --==================================================
 -- NAVIGATION
@@ -863,37 +808,14 @@ CreateInfo(AboutPage, "Created for authorized game testing.")
 local NavButtons = {}
 
 local function ShowPage(name)
-	if not EnabledPages[name] then
-		name = nil
-
-		for _, pageName in ipairs({
-			"Movement",
-			"Settings",
-			"About"
-			}) do
-			if EnabledPages[pageName] then
-				name = pageName
-				break
-			end
-		end
-	end
-
-	if not name then
-		return
-	end
-
 	CurrentPage = name
 
 	for pageName, page in pairs(Pages) do
-		page.Visible =
-			pageName == name and EnabledPages[pageName]
+		page.Visible = pageName == name
 	end
 
 	for buttonName, button in pairs(NavButtons) do
-		button.Visible = EnabledPages[buttonName]
-
-		button.BackgroundColor3 =
-			buttonName == name and C.Red or C.Element
+		button.BackgroundColor3 = buttonName == name and C.Red or C.Element
 	end
 end
 
@@ -922,10 +844,6 @@ CreateNav("Movement", 1)
 CreateNav("Settings", 2)
 CreateNav("About", 3)
 
-for name, button in pairs(NavButtons) do
-	button.Visible = EnabledPages[name]
-end
-
 --==================================================
 -- PANIC BUTTON
 --==================================================
@@ -938,7 +856,6 @@ Panic.TextColor3 = Color3.new(1, 1, 1)
 Panic.Font = Enum.Font.GothamBold
 Panic.TextSize = 11
 Panic.LayoutOrder = 4
-Panic.Visible = PanicEnabled
 Panic.Parent = Sidebar
 
 Instance.new("UICorner", Panic).CornerRadius =
@@ -1030,8 +947,6 @@ print("================================")
 print("NEXUS CONTROL v" .. Version)
 print("RED DARK EDITION")
 print("Created by: 阿叶ev03")
-print("GitHub Config:", RemoteConfig.version or "DEFAULT")
 print("F = Fly | N = Noclip | G = Speed")
 print("RIGHT SHIFT = Hide / Show")
-print("PANIC = Disable all modules")
 print("================================")
