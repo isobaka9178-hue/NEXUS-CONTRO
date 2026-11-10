@@ -15,9 +15,15 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Player = Players.LocalPlayer
 -- 如果物体可能不存在，这样写可以防止崩脚本
-local remote = ReplicatedStorage:WaitForChild("NexusGetConfig", 5) 
-if not remote then
-    warn("未找到指定的远程对象！")
+local replicatedStorage = game:GetService("ReplicatedStorage")
+-- 设置超时时间为 5 秒，如果找不到会返回 nil 而不是直接报错崩溃
+local myFolder = replicatedStorage:WaitForChild("NexusFolder", 5) 
+
+if myFolder then
+    -- 找到了继续执行
+    local remote = myFolder:WaitForChild("NexusGetConfig", 5)
+else
+    warn("[NEXUS] 找不到指定的文件夹，请检查层级结构！")
 end
 
 --==================================================
