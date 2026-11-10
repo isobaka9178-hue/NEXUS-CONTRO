@@ -1,0 +1,21 @@
+{
+  "project": "NEXUS CONTROL",
+  "version": "4.0.0",
+  "theme": "RED_DARK",
+  "window": {
+    "width": 590,
+    "height": 420
+  },
+  "modules": {
+    "movement": true,
+    "settings": true,
+    "about": true,
+    "panicButton": true
+  },
+  "hotkeys": {
+    "menu": "RightShift",
+    "fly": "F",
+    "noclip": "N",
+    "speed": "G"
+  }
+}
