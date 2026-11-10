@@ -14,7 +14,11 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Player = Players.LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
+-- 如果物体可能不存在，这样写可以防止崩脚本
+local remote = ReplicatedStorage:WaitForChild("NexusGetConfig", 5) 
+if not remote then
+    warn("未找到指定的远程对象！")
+end
 
 --==================================================
 -- GITHUB CONFIG LOADER
